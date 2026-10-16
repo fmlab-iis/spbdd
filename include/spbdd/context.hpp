@@ -79,9 +79,9 @@ public:
     pset weight_between(int lo, int hi, const std::vector<int> &qubits) const;
 
     // --- commutation ------------------------------------------------------
-    pset commuting_with(const std::string &p) const;
-    pset anticommuting_with(const std::string &p) const;
-    pset commuting_with_all(const std::vector<std::string> &ps) const;
+    pset commute_with(const std::string &p) const;
+    pset commute_with(const std::vector<std::string> &ps) const;
+    pset commute_with(std::initializer_list<std::string> ps) const;
 
 private:
     friend class pset;

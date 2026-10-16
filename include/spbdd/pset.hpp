@@ -10,20 +10,15 @@
 
 namespace spbdd {
 
-struct measurement_split;
+struct meas_result;
 
 class pset {
 public:
     explicit pset(const context &ctx);
 
     pset(const pset &o);
-    pset(pset &&o) noexcept;
     pset& operator= (const pset &o);
-    pset& operator= (pset &&o) noexcept;
     ~pset();
-
-    // --- context ----------------------------------------------------------
-    int  num_qubits() const;
 
     // --- set algebra ------------------------------------------------------
     pset operator| (const pset &o) const;     // union
@@ -37,7 +32,7 @@ public:
     pset& operator-= (const pset &o);
     pset& operator^= (const pset &o);
 
-    pset  operator* (const pset &o) const;
+    pset  operator* (const pset &o) const;    // setwise product (or "Minkowski sum")
     pset& operator*= (const pset &o);
 
     bool operator== (const pset &o) const;
@@ -49,39 +44,37 @@ public:
     bool subset_of(const pset &o) const;
 
     // --- metrics ----------------------------------------------------------
-    double      size() const;                
+    double      size() const;
     std::size_t node_count() const;
-    int         min_weight() const;         
+    int         min_weight() const;
 
-    // --- derived sets -----------------------------------------------------
-    pset fault_inject(const std::vector<int> &qubits) const;
-    pset reset(const std::vector<int> &qubits) const;
+    // --- stabilizer / error correction simulation operations  -------------
 
-    // --- measurement ------------------------------------------------------
-    measurement_split measure_z(int qubit) const;
-    measurement_split measure_x(int qubit) const;
-    measurement_split measure_y(int qubit) const;
-
-    // --- Clifford gates ---------------------------------------------------
-    pset x(int qubit) const;     
+    // Gate propagation (current support only Clifford gates)
+    pset x(int qubit) const;
     pset y(int qubit) const;
     pset z(int qubit) const;
-
-    pset h(int qubit) const;      
-    pset s(int qubit) const;    
+    pset h(int qubit) const;
+    pset s(int qubit) const;
     pset sdg(int qubit) const;
-    pset sx(int qubit) const;     
+    pset sx(int qubit) const;
     pset sxdg(int qubit) const;
-
     pset cx(int control, int target) const;
     pset cy(int control, int target) const;
     pset cz(int a, int b) const;
     pset swap(int a, int b) const;
 
-    // --- enumeration ------------------------------------------------------
-    void for_each(const std::function<bool(const std::string &)> &fn) const;
+    // Fault injection
+    pset fault_inject(const std::vector<int> &qubits) const;
 
-    std::vector<std::string>   to_strings(std::size_t max_elements = 4096) const;
+    // Measure & Reset
+    meas_result measure_z(int qubit) const;
+    meas_result measure_x(int qubit) const;
+    meas_result measure_y(int qubit) const;
+    pset reset(const std::vector<int> &qubits) const; // reset {X,Y,Z} to I on certain qubits
+
+    // --- enumeration ------------------------------------------------------
+    void for_each_element(const std::function<bool(const std::string &)> &fn) const;
     std::optional<std::string> any_element() const;
 
 private:
@@ -90,15 +83,15 @@ private:
 
     explicit pset(const bdd &f);
 
-    void require_fresh(const char *who) const;           
+    void check_context_id(const char *who) const;
 
-    union { bdd f_; };      
+    union { bdd f_; };
     int ctx_id_ = 0;
 };
 
-struct measurement_split {
-    pset unflipped;   
-    pset flipped;     
+struct meas_result {
+    pset meas_0;
+    pset meas_1;
 };
 
 } // namespace spbdd
