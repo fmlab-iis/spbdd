@@ -33,18 +33,24 @@ public:
     pset by_syndrome(const std::vector<bool> &syndrome) const;
     pset by_logical_component(const std::vector<bool> &component) const;
 
-    std::optional<std::pair<std::string, std::string>> find_qec_cond_violation(const pset &errors) const;
+    enum class fqcv_method { bruteforce, table, image, square };
+    using violation = std::optional<std::pair<std::string, std::string>>;
+    violation find_qec_cond_violation(const pset &errors, fqcv_method m = fqcv_method::image) const;
 
 private:
     void check_context_id(const char *who) const;
 
+    violation fqcv_bruteforce(const pset &errors) const;    
+    violation fqcv_table(const pset &errors) const;        
+    violation fqcv_image(const pset &errors) const;        
+    violation fqcv_square(const pset &errors) const;       
+
     int ctx_id_ = 0;
     int n_ = 0, k_ = 0;
 
-    // stabilizer generators, logical X operators, logical Z operators
     std::vector<std::vector<bool>> g_, lx_, lz_; 
 
-    std::vector<std::vector<int>> shift_table_;
+    std::vector<std::vector<int>> shift_table_; // the pattern of each xvar and zvar individually.
 };
 
 } // namespace spbdd

@@ -35,8 +35,6 @@ public:
     void grow_num_qubits_to(int num_qubits);
     int num_qubits() const { return num_qubits_; }
     int num_vars() const { return 2 * num_qubits_; }
-    static int xvar(int q) { return 2 * q; }
-    static int zvar(int q) { return 2 * q + 1; }
 
     // --- variable order ---------------------------------------------------
     void set_dynamic_reordering(bool enabled);
@@ -46,28 +44,26 @@ public:
     // --- statistics -------------------------------------------------------
     std::size_t live_nodes() const;
     std::size_t peak_nodes() const;
+    std::size_t table_size() const;
 
     // --- primitives -------------------------------------------------------
     pset empty() const;
     pset all() const;
     pset identity() const;
-    pset literal(int var, bool positive) const;
-    pset parity(const std::vector<int> &vars, bool target) const;
 
     // --- explicitly listed elements ---------------------------------------
-    pset from(const std::string &s) const;
-    pset from(const std::vector<std::string> &list) const;
-    pset from(std::initializer_list<std::string> list) const; // prevent compilation bug regarding input as char*
+    pset from_str(const std::string &s) const;
+    pset from_list(const std::vector<std::string> &list) const;
+    pset from_list(std::initializer_list<std::string> list) const; // prevent compilation bug regarding input as char*
 
     // --- subgroups --------------------------------------------------------
     pset generated_by(const std::vector<std::string> &generators) const;
-    pset coset_of(const std::string &base, const std::vector<std::string> &group) const;
+    pset coset_of(const std::string &base, const std::vector<std::string> &basis) const;
+    pset coset_of(const std::string &base, const pset &set) const;
 
     // --- support ----------------------------------------------------------
-    pset supported_on(const std::vector<int> &qubits) const;
     pset identity_on(const std::vector<int> &qubits) const;
     pset pauli_at(int qubit, char p) const;
-    pset non_identity_at(int qubit) const;
     pset matching(const std::string &pattern) const;
 
     // --- weight -----------------------------------------------------------
@@ -86,6 +82,9 @@ public:
 private:
     friend class pset;
     friend class code;
+
+    static int xvar(int q) { return 2 * q; }
+    static int zvar(int q) { return 2 * q + 1; }
 
     static inline context *current_ = nullptr;
     static inline int      current_id_ = 0;

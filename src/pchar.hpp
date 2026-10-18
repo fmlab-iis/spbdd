@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <stdexcept>
 #include <string>
@@ -42,6 +43,19 @@ inline std::string pauli_to_string(const std::vector<pauli> &p) {
     s.reserve(p.size());
     for (pauli q : p) s.push_back(letter[static_cast<int>(q)]);
     return s;
+}
+
+inline void check_qubit_range(int q, int n) {
+    if (q < 0 || q >= n)
+        throw std::out_of_range("qubit out of range");
+}
+
+// Range-check the qubits, then sort and drop duplicates.
+inline std::vector<int> unique_qubits(std::vector<int> qubits, int n) {
+    for (int q : qubits) check_qubit_range(q, n);
+    std::sort(qubits.begin(), qubits.end());
+    qubits.erase(std::unique(qubits.begin(), qubits.end()), qubits.end());
+    return qubits;
 }
 
 } // namespace spbdd

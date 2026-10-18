@@ -46,7 +46,7 @@ public:
     // --- metrics ----------------------------------------------------------
     double      size() const;
     std::size_t node_count() const;
-    int         min_weight() const;
+    // int         min_weight() const;
 
     // --- stabilizer / error correction simulation operations  -------------
 
@@ -74,6 +74,7 @@ public:
     pset reset(const std::vector<int> &qubits) const; // reset {X,Y,Z} to I on certain qubits
 
     // --- enumeration ------------------------------------------------------
+    // Visit every element in unspecified order; fn returns false for early stop.
     void for_each_element(const std::function<bool(const std::string &)> &fn) const;
     std::optional<std::string> any_element() const;
 
@@ -83,7 +84,9 @@ private:
 
     explicit pset(const bdd &f);
 
+    bool is_old_ctx() const;
     void check_context_id(const char *who) const;
+    void check_context_id(const pset &o, const char *who) const;   // both operands
 
     union { bdd f_; };
     int ctx_id_ = 0;
