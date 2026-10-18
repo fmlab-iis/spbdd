@@ -1,6 +1,6 @@
 #pragma once
 
-#include <bdd.h>
+#include "bdd.h"   // copy of BuDDy's bdd.h, made by make
 
 #include <cstddef>
 #include <initializer_list>

@@ -1,5 +1,5 @@
 #pragma once
 
-#include "spbdd/context.hpp"
-#include "spbdd/pset.hpp"
-#include "spbdd/code.hpp"
+#include "context.hpp"
+#include "pset.hpp"
+#include "code.hpp"
