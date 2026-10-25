@@ -49,9 +49,7 @@ To compile, you only need to link `libspbdd.a`. Note that this library requires 
 g++ -std=c++17 prog.cpp libspbdd.a -o prog
 ```
 
-## Examples
+## Contact
 
-```sh
-make examples
-build/
-```
+Please [create an issue](https://github.com/fmlab-iis/spbdd/issues) for bug
+reports and feature requests, or contact us directly at *jtsai1120@gmail.com*.

@@ -14,7 +14,7 @@ struct meas_result;
 
 class pset {
 public:
-    explicit pset(const context &ctx);
+    pset();   // the empty set, in the live context
 
     pset(const pset &o);
     pset& operator= (const pset &o);
@@ -50,19 +50,21 @@ public:
 
     // --- stabilizer / error correction simulation operations  -------------
 
+    // Gates and reset act in place and return *this.
+
     // Gate propagation (current support only Clifford gates)
-    pset x(int qubit) const;
-    pset y(int qubit) const;
-    pset z(int qubit) const;
-    pset h(int qubit) const;
-    pset s(int qubit) const;
-    pset sdg(int qubit) const;
-    pset sx(int qubit) const;
-    pset sxdg(int qubit) const;
-    pset cx(int control, int target) const;
-    pset cy(int control, int target) const;
-    pset cz(int a, int b) const;
-    pset swap(int a, int b) const;
+    pset& x(int qubit);
+    pset& y(int qubit);
+    pset& z(int qubit);
+    pset& h(int qubit);
+    pset& s(int qubit);
+    pset& sdg(int qubit);
+    pset& sx(int qubit);
+    pset& sxdg(int qubit);
+    pset& cx(int control, int target);
+    pset& cy(int control, int target);
+    pset& cz(int a, int b);
+    pset& swap(int a, int b);
 
     // Fault injection
     pset fault_inject(const std::vector<int> &qubits) const;
@@ -71,7 +73,10 @@ public:
     meas_result measure_z(int qubit) const;
     meas_result measure_x(int qubit) const;
     meas_result measure_y(int qubit) const;
-    pset reset(const std::vector<int> &qubits) const; // reset {X,Y,Z} to I on certain qubits
+    pset measure_z(int qubit, bool outcome) const;  // the part with this outcome
+    pset measure_x(int qubit, bool outcome) const;
+    pset measure_y(int qubit, bool outcome) const;
+    pset& reset(const std::vector<int> &qubits); // reset {X,Y,Z} to I on certain qubits
 
     // --- enumeration ------------------------------------------------------
     // Visit every element in unspecified order; fn returns false for early stop.

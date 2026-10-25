@@ -88,7 +88,7 @@ int num_qubits() {
 
 } // namespace
 
-pset::pset(const context &) : f_(bddfalse), ctx_id_(context::current_id_) {}
+pset::pset() : pset((context::current(), bddfalse)) {}   // throws if no context is alive
 
 pset::pset(const bdd &f) : f_(f), ctx_id_(context::current_id_) {}
 
@@ -199,85 +199,91 @@ std::size_t pset::node_count() const {
 
 /* Clifford gates P propagates an error E in a way that : E -> P E P† */
 
-pset pset::x(int qubit) const {
+pset& pset::x(int qubit) {
     check_context_id("x");
     check_qubit_range(qubit, num_qubits());
     return *this;
 }
 
-pset pset::y(int qubit) const {
+pset& pset::y(int qubit) {
     check_context_id("y");
     check_qubit_range(qubit, num_qubits());
     return *this;
 }
 
-pset pset::z(int qubit) const {
+pset& pset::z(int qubit) {
     check_context_id("z");
     check_qubit_range(qubit, num_qubits());
     return *this;
 }
 
 // S: X -> Y, Z -> Z, i.e. z ^= x.
-pset pset::s(int qubit) const {
+pset& pset::s(int qubit) {
     check_context_id("s");
     check_qubit_range(qubit, num_qubits());
-    return pset(xor_into(f_, context::zvar(qubit), context::xvar(qubit)));
+    f_ = xor_into(f_, context::zvar(qubit), context::xvar(qubit));
+    return *this;
 }
 
-pset pset::sdg(int qubit) const {
+pset& pset::sdg(int qubit) {
     return s(qubit);
 }
 
 // SX: Z -> Y, X -> X, i.e. x ^= z.
-pset pset::sx(int qubit) const {
+pset& pset::sx(int qubit) {
     check_context_id("sx");
     check_qubit_range(qubit, num_qubits());
-    return pset(xor_into(f_, context::xvar(qubit), context::zvar(qubit)));
+    f_ = xor_into(f_, context::xvar(qubit), context::zvar(qubit));
+    return *this;
 }
 
-pset pset::sxdg(int qubit) const {
+pset& pset::sxdg(int qubit) {
     return sx(qubit);
 }
 
 // H: X <-> Z, i.e. exchange x and z.
-pset pset::h(int qubit) const {
+pset& pset::h(int qubit) {
     check_context_id("h");
     check_qubit_range(qubit, num_qubits());
-    return pset(swap_vars(f_, {{context::xvar(qubit), context::zvar(qubit)}}));
+    f_ = swap_vars(f_, {{context::xvar(qubit), context::zvar(qubit)}});
+    return *this;
 }
 
 // CX: x_t ^= x_c, z_c ^= z_t.
-pset pset::cx(int control, int target) const {
+pset& pset::cx(int control, int target) {
     check_context_id("cx");
     check_qubit_range(control, num_qubits());
     check_qubit_range(target, num_qubits());
     check_distinct(control, target, "cx");
-    bdd f = xor_into(f_, context::xvar(target), context::xvar(control));
-    return pset(xor_into(f, context::zvar(control), context::zvar(target)));
+    f_ = xor_into(f_, context::xvar(target), context::xvar(control));
+    f_ = xor_into(f_, context::zvar(control), context::zvar(target));
+    return *this;
 }
 
 // CY = S_t CX S_t^dagger.
-pset pset::cy(int control, int target) const {
+pset& pset::cy(int control, int target) {
     return s(target).cx(control, target).s(target);
 }
 
 // CZ: z_b ^= x_a, z_a ^= x_b.
-pset pset::cz(int a, int b) const {
+pset& pset::cz(int a, int b) {
     check_context_id("cz");
     check_qubit_range(a, num_qubits());
     check_qubit_range(b, num_qubits());
     check_distinct(a, b, "cz");
-    bdd f = xor_into(f_, context::zvar(b), context::xvar(a));
-    return pset(xor_into(f, context::zvar(a), context::xvar(b)));
+    f_ = xor_into(f_, context::zvar(b), context::xvar(a));
+    f_ = xor_into(f_, context::zvar(a), context::xvar(b));
+    return *this;
 }
 
-pset pset::swap(int a, int b) const {
+pset& pset::swap(int a, int b) {
     check_context_id("swap");
     check_qubit_range(a, num_qubits());
     check_qubit_range(b, num_qubits());
     check_distinct(a, b, "swap");
-    return pset(swap_vars(f_, {{context::xvar(a), context::xvar(b)},
-                               {context::zvar(a), context::zvar(b)}}));
+    f_ = swap_vars(f_, {{context::xvar(a), context::xvar(b)},
+                        {context::zvar(a), context::zvar(b)}});
+    return *this;
 }
 
 pset pset::fault_inject(const std::vector<int> &qubits) const {
@@ -285,8 +291,9 @@ pset pset::fault_inject(const std::vector<int> &qubits) const {
     return pset(bdd_exist(f_, xz_cube(qubits)));
 }
 
-pset pset::reset(const std::vector<int> &qubits) const {
-    return pset(fault_inject(qubits).f_ & context::current().identity_on(qubits).f_);
+pset& pset::reset(const std::vector<int> &qubits) {
+    f_ = fault_inject(qubits).f_ & context::current().identity_on(qubits).f_;
+    return *this;
 }
 
 meas_result pset::measure_z(int qubit) const {
@@ -308,6 +315,21 @@ meas_result pset::measure_y(int qubit) const {
     check_qubit_range(qubit, num_qubits());
     const bdd flip = bdd_ithvar(context::xvar(qubit)) ^ bdd_ithvar(context::zvar(qubit));
     return {pset(f_ & !flip), pset(f_ & flip)};
+}
+
+pset pset::measure_z(int qubit, bool outcome) const {
+    const meas_result r = measure_z(qubit);
+    return outcome ? r.meas_1 : r.meas_0;
+}
+
+pset pset::measure_x(int qubit, bool outcome) const {
+    const meas_result r = measure_x(qubit);
+    return outcome ? r.meas_1 : r.meas_0;
+}
+
+pset pset::measure_y(int qubit, bool outcome) const {
+    const meas_result r = measure_y(qubit);
+    return outcome ? r.meas_1 : r.meas_0;
 }
 
 void pset::for_each_element(const std::function<bool(const std::string &)> &fn) const {

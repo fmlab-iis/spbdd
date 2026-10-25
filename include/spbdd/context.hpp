@@ -21,6 +21,7 @@ struct config { // for BuDDy init
 class context {
 public:
     explicit context(int num_qubits, const config &cfg = {});
+    context(int num_data, int num_ancillas, const config &cfg = {});   // data qubits come first
     ~context();
 
     // Prevent the context object from being copied or moved.
@@ -32,8 +33,10 @@ public:
     static context& current();
 
     // --- set space --------------------------------------------------------
-    void grow_num_qubits_to(int num_qubits);
+    void grow_num_qubits_to(int num_qubits);   // the new qubits are ancillas
     int num_qubits() const { return num_qubits_; }
+    int num_data() const { return num_data_; }
+    int num_ancillas() const { return num_qubits_ - num_data_; }
     int num_vars() const { return 2 * num_qubits_; }
 
     // --- variable order ---------------------------------------------------
@@ -90,6 +93,7 @@ private:
     static inline int      current_id_ = 0;
 
     int  num_qubits_;
+    int  num_data_;
     bool dynamic_reordering_ = false;
 };
 

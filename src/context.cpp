@@ -38,11 +38,13 @@ static void throw_bdd_error(int e) {
     throw std::runtime_error(std::string("BuDDy: ") + (msg ? msg : "unknown error"));
 }
 
-context::context(int num_qubits, const config &cfg)
-    : num_qubits_(num_qubits), dynamic_reordering_(cfg.dynamic_reordering) {
+context::context(int num_qubits, const config &cfg) : context(num_qubits, 0, cfg) {}
 
-    if (num_qubits < 1)
-        throw std::invalid_argument("context: num_qubits must be at least 1");
+context::context(int num_data, int num_ancillas, const config &cfg)
+    : num_qubits_(num_data + num_ancillas), num_data_(num_data), dynamic_reordering_(cfg.dynamic_reordering) {
+
+    if (num_data < 1 || num_ancillas < 0)
+        throw std::invalid_argument("context: needs num_data >= 1 and num_ancillas >= 0");
     if (alive())
         throw std::invalid_argument("context: another context is alive");
     if (bdd_init(cfg.initial_nodes, cfg.cache_size) < 0)

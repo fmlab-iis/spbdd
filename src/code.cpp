@@ -30,10 +30,18 @@ bits model(const bdd &f, int first, int last) {
     return out;
 }
 
+// The data part (the first n qubits) of each row.
+std::vector<std::string> data_strings(const std::vector<bits> &rows, int n) {
+    std::vector<std::string> out;
+    for (const bits &v : rows)
+        out.push_back(bits_to_string(bits(v.begin(), v.begin() + 2 * n)));
+    return out;
+}
+
 } // namespace
 
-code::code(const context &ctx, const std::vector<std::string> &gens)
-    : ctx_id_(context::current_id_), n_(ctx.num_qubits()) {
+code::code(const context &ctx, const std::vector<std::string> &gens, int d)
+    : ctx_id_(context::current_id_), n_(ctx.num_data()), d_(d), num_qubits_(ctx.num_qubits()) {
 
     for (const std::string &s : gens)
         g_.push_back(to_bits(s, n_));
@@ -74,9 +82,14 @@ code::code(const context &ctx, const std::vector<std::string> &gens)
         throw std::logic_error("code: found " + std::to_string(lx_.size()) +
                                " logical pairs, expected " + std::to_string(k_));
 
+    // pad with I on the ancillas
+    for (std::vector<bits> *rows : {&g_, &lx_, &lz_})
+        for (bits &v : *rows)
+            v.resize(2 * num_qubits_, false);
+
     // shift_table_[v]: the bits of the label (syndrome, logical component) that variable v flips.
-    for (int v = 0; v < 2 * n_; ++v) {
-        bits unit(2 * n_, false);
+    for (int v = 0; v < 2 * num_qubits_; ++v) {
+        bits unit(2 * num_qubits_, false);
         unit[v] = true;
         bits label = syndrome_of(unit);
         const bits logical = logical_component_of(unit);
@@ -86,25 +99,32 @@ code::code(const context &ctx, const std::vector<std::string> &gens)
 }
 
 std::vector<std::string> code::stabilizer_generators() const {
-    return bits_to_strings(g_);
+    return data_strings(g_, n_);
 }
 
 std::vector<std::string> code::logical_X_operators() const {
-    return bits_to_strings(lx_);
+    return data_strings(lx_, n_);
 }
 
 std::vector<std::string> code::logical_Z_operators() const {
-    return bits_to_strings(lz_);
+    return data_strings(lz_, n_);
 }
 
 pset code::S() const {
     check_context_id("S");
-    return context::current().generated_by(stabilizer_generators());
+    std::vector<std::string> gens = bits_to_strings(g_);
+    for (int q = n_; q < num_qubits_; ++q)
+        for (char p : {'X', 'Z'}) {
+            std::string s(num_qubits_, 'I');
+            s[q] = p;
+            gens.push_back(s);
+        }
+    return context::current().generated_by(gens);
 }
 
 pset code::N() const {
     check_context_id("N");
-    return context::current().commute_with(stabilizer_generators());
+    return context::current().commute_with(bits_to_strings(g_));
 }
 
 pset code::NmS() const {
@@ -112,12 +132,12 @@ pset code::NmS() const {
 }
 
 std::vector<bool> code::syndrome_of(const std::string &e) const {
-    return syndrome_of(to_bits(e, n_));
+    return syndrome_of(to_bits(e, num_qubits_));
 }
 
 std::vector<bool> code::syndrome_of(const std::vector<bool> &e) const {
-    if (e.size() != static_cast<std::size_t>(2 * n_))
-        throw std::invalid_argument("code: expected " + std::to_string(2 * n_) + " bits");
+    if (e.size() != static_cast<std::size_t>(2 * num_qubits_))
+        throw std::invalid_argument("code: expected " + std::to_string(2 * num_qubits_) + " bits");
     std::vector<bool> out;
     for (const bits &g : g_)
         out.push_back(symplectic_inner_product(g, e));
@@ -125,12 +145,12 @@ std::vector<bool> code::syndrome_of(const std::vector<bool> &e) const {
 }
 
 std::vector<bool> code::logical_component_of(const std::string &e) const {
-    return logical_component_of(to_bits(e, n_));
+    return logical_component_of(to_bits(e, num_qubits_));
 }
 
 std::vector<bool> code::logical_component_of(const std::vector<bool> &e) const {
-    if (e.size() != static_cast<std::size_t>(2 * n_))
-        throw std::invalid_argument("code: expected " + std::to_string(2 * n_) + " bits");
+    if (e.size() != static_cast<std::size_t>(2 * num_qubits_))
+        throw std::invalid_argument("code: expected " + std::to_string(2 * num_qubits_) + " bits");
     std::vector<bool> out;
     for (std::size_t j = 0; j < lx_.size(); ++j) {
         out.push_back(symplectic_inner_product(lz_[j], e));
@@ -183,7 +203,7 @@ code::violation code::find_qec_cond_violation(const pset &errors, fqcv_method m)
 code::violation code::fqcv_bruteforce(const pset &errors) const {
     std::vector<bits> all;
     errors.for_each_element([&](const std::string &p) {
-        all.push_back(to_bits(p, n_));
+        all.push_back(to_bits(p, num_qubits_));
         return true;
     });
 
@@ -201,7 +221,7 @@ code::violation code::fqcv_table(const pset &errors) const {
     std::unordered_map<bits, std::pair<bits, std::string>> table;   // syndrome -> (logical component, error)
     violation found;
     errors.for_each_element([&](const std::string &p) {
-        const bits e = to_bits(p, n_), component = logical_component_of(e);
+        const bits e = to_bits(p, num_qubits_), component = logical_component_of(e);
         const auto [it, is_new] = table.try_emplace(syndrome_of(e), component, p);
         if (is_new || it->second.first == component)
             return true;
@@ -216,7 +236,7 @@ code::violation code::fqcv_image(const pset &errors) const {
     if (f == bddfalse)
         return std::nullopt;
 
-    const int m = r() + 2 * k_, N = 2 * n_;
+    const int m = r() + 2 * k_, N = 2 * num_qubits_;
     bdd labels;
 
     { // for freeze_order object's lifetime
@@ -287,7 +307,7 @@ code::violation code::fqcv_square(const pset &errors) const {
        Any a in it works: a ∈ errors and a = c * E for some c ∈ errors, so a * E = c ∈ errors. */
 
     const std::string a = (errors & context::current().coset_of(*E, errors)).any_element().value();
-    return std::make_pair(a, bits_to_string(multiply(to_bits(a, n_), to_bits(*E, n_))));
+    return std::make_pair(a, bits_to_string(multiply(to_bits(a, num_qubits_), to_bits(*E, num_qubits_))));
 }
 
 void code::check_context_id(const char *who) const {

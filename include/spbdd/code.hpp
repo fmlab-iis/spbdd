@@ -11,16 +11,18 @@ namespace spbdd {
 
 class code {
 public:
-    code(const context &ctx, const std::vector<std::string> &gens);
+    code(const context &ctx, const std::vector<std::string> &gens, int d = 0);   // gens on the data qubits
 
-    int n() const { return n_; }        // # of physical qubit
+    int n() const { return n_; }        // # of data qubits
     int k() const { return k_; }        // # of logical qubit
     int r() const { return n_ - k_; }   // # of stabilizer generators
+    int d() const { return d_; }        // code distance (0 if not given)
 
     std::vector<std::string> stabilizer_generators() const;
     std::vector<std::string> logical_X_operators() const;
     std::vector<std::string> logical_Z_operators() const;
 
+    // Ancilla qubits are existential (any Pauli) in S, N and NmS.
     pset S() const;     // S : stabilizer group
     pset N() const;     // N(S) : normalizer of stabilizer group
     pset NmS() const;   // N(S)-S : the non-trivial logical operators
@@ -46,7 +48,8 @@ private:
     violation fqcv_square(const pset &errors) const;       
 
     int ctx_id_ = 0;
-    int n_ = 0, k_ = 0;
+    int n_ = 0, k_ = 0, d_ = 0;
+    int num_qubits_ = 0;    // data and ancillas
 
     std::vector<std::vector<bool>> g_, lx_, lz_; 
 
