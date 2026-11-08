@@ -1,5 +1,5 @@
 # spbdd
-A BDD-based C++ library for set operations on Pauli operators
+A BDD-based C++ library for set operations on multi-qubit Pauli operators
 
 ## Usage
 
