@@ -25,7 +25,7 @@ public:
     // Ancilla qubits are existential (any Pauli) in S, N and NmS.
     pset S() const;     // S : stabilizer group
     pset N() const;     // N(S) : normalizer of stabilizer group
-    pset NmS() const;   // N(S)-S : the non-trivial logical operators
+    pset NmS() const;   // N(S)-S : the non-trivial logical operators (built once, then reused)
 
     std::vector<bool> syndrome_of(const std::string &e) const;                 // r bits
     std::vector<bool> syndrome_of(const std::vector<bool> &e) const;
@@ -54,6 +54,8 @@ private:
     std::vector<std::vector<bool>> g_, lx_, lz_; 
 
     std::vector<std::vector<int>> shift_table_; // the pattern of each xvar and zvar individually.
+
+    mutable std::optional<pset> nms_;           // NmS(), built on first use
 };
 
 } // namespace spbdd

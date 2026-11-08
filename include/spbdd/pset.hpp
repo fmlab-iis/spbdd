@@ -46,6 +46,12 @@ public:
     // --- metrics ----------------------------------------------------------
     double      size() const;
     std::size_t node_count() const;
+
+    // A hash of the set, for hash tables of psets: equal sets always hash
+    // equal (the diagrams are canonical, so an equal set is the same root
+    // node), and unlike size() it tells different sets apart almost always.
+    // It stays valid across variable reordering, which keeps every live root.
+    std::size_t hash() const;
     // int         min_weight() const;
 
     // --- stabilizer / error correction simulation operations  -------------
@@ -103,3 +109,10 @@ struct meas_result {
 };
 
 } // namespace spbdd
+
+namespace std {
+template <>
+struct hash<spbdd::pset> {
+    std::size_t operator()(const spbdd::pset &p) const { return p.hash(); }
+};
+} // namespace std

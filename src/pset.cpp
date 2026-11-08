@@ -192,6 +192,11 @@ double pset::size() const {
     return bdd_satcount(f_);
 }
 
+std::size_t pset::hash() const {
+    check_context_id("hash");
+    return std::hash<int>{}(f_.id());
+}
+
 std::size_t pset::node_count() const {
     check_context_id("node_count");
     return bdd_nodecount(f_);

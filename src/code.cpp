@@ -128,7 +128,16 @@ pset code::N() const {
 }
 
 pset code::NmS() const {
-    return N() - S();
+    /* N(S)-S depends only on the generators and the qubit count, both fixed for
+       this object, so it is built once. fqcv_square needs it on every call, and
+       rebuilding it each time used to dominate that method: S() is an AND of
+       one parity constraint per basis vector of the null space, and for codes
+       with many ancillas the work does not fit BuDDy's operation cache, so
+       every rebuild paid the full price. */
+    check_context_id("NmS");
+    if (!nms_)
+        nms_ = N() - S();
+    return *nms_;
 }
 
 std::vector<bool> code::syndrome_of(const std::string &e) const {
